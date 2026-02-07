@@ -1,0 +1,1278 @@
+{% extends "base.html" %}
+
+{% block title %}Calendar{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 sidebar">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fa fa-calendar-plus"></i> Event Manager
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="eventForm">
+                        <div class="form-group">
+                            <label for="eventTitle" class="font-weight-bold">Title *</label>
+                            <input type="text" class="form-control" id="eventTitle"
+                                   placeholder="Meeting, Task, Reminder..." required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="eventDate" class="font-weight-bold">Date *</label>
+                            <input type="date" class="form-control" id="eventDate" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col">
+                                <div class="form-group">
+                                    <label for="startTime">Start Time</label>
+                                    <input type="time" class="form-control" id="startTime">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label for="endTime">End Time</label>
+                                    <input type="time" class="form-control" id="endTime">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="eventDescription">Description</label>
+                            <textarea class="form-control" id="eventDescription"
+                                      rows="2" placeholder="Optional details..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="eventColor">Color Theme</label>
+                            <div class="d-flex flex-wrap">
+                                <div class="color-option m-1" data-color="#007bff" style="width:30px;height:30px;background-color:#007bff;border-radius:50%;cursor:pointer;" title="Blue"></div>
+                                <div class="color-option m-1" data-color="#28a745" style="width:30px;height:30px;background-color:#28a745;border-radius:50%;cursor:pointer;" title="Green"></div>
+                                <div class="color-option m-1" data-color="#dc3545" style="width:30px;height:30px;background-color:#dc3545;border-radius:50%;cursor:pointer;" title="Red"></div>
+                                <div class="color-option m-1" data-color="#ffc107" style="width:30px;height:30px;background-color:#ffc107;border-radius:50%;cursor:pointer;" title="Yellow"></div>
+                                <div class="color-option m-1" data-color="#6f42c1" style="width:30px;height:30px;background-color:#6f42c1;border-radius:50%;cursor:pointer;" title="Purple"></div>
+                                <div class="color-option m-1" data-color="#fd7e14" style="width:30px;height:30px;background-color:#fd7e14;border-radius:50%;cursor:pointer;" title="Orange"></div>
+                            </div>
+                            <select class="form-control mt-2 d-none" id="eventColor">
+                                <option value="#007bff">Blue</option>
+                                <option value="#28a745">Green</option>
+                                <option value="#dc3545">Red</option>
+                                <option value="#ffc107">Yellow</option>
+                                <option value="#6f42c1">Purple</option>
+                                <option value="#fd7e14">Orange</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="attachNote">Attach Note</label>
+                            <select class="form-control" id="attachNote">
+                                <option value="">-- No note --</option>
+                            </select>
+                            <small class="form-text text-muted">
+                                Link to an existing note
+                            </small>
+                        </div>
+
+                        <input type="hidden" id="eventId">
+
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-success btn-block" id="saveEventBtn">
+                                <i class="fa fa-save"></i> Save Event
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-block mt-2"
+                                    id="clearFormBtn" style="display:none;">
+                                <i class="fa fa-times"></i> Cancel Edit
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Stats Card -->
+            <div class="card shadow-sm mt-3">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fa fa-chart-bar"></i> Calendar Stats</h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <i class="fa fa-calendar-check text-primary"></i>
+                        Total events: <span id="totalEvents" class="badge badge-primary float-right">0</span>
+                    </p>
+                    <p class="mb-2">
+                        <i class="fa fa-sun text-warning"></i>
+                        Today: <span id="todayEvents" class="badge badge-warning float-right">0</span>
+                    </p>
+                    <p class="mb-0">
+                        <i class="fa fa-calendar-alt text-success"></i>
+                        This month: <span id="monthEvents" class="badge badge-success float-right">0</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card shadow-sm mt-3">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="fa fa-bolt"></i> Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-outline-primary btn-block mb-2" id="todayBtn">
+                        <i class="fa fa-calendar-day"></i> Go to Today
+                    </button>
+                    <button class="btn btn-outline-danger btn-block" id="deleteAllBtn">
+                        <i class="fa fa-trash-alt"></i> Clear All Events
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendar Area -->
+        <div class="col-md-9 col-lg-10">
+            <!-- Calendar Header -->
+            <div class="calendar-header card shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2 class="mb-0">
+                            <i class="fa fa-calendar-alt text-primary"></i>
+                            My Schedule
+                        </h2>
+                        <div class="d-flex">
+                            <div class="btn-group mr-2" role="group">
+                                <button class="btn btn-outline-primary" id="prevBtn">
+                                    <i class="fa fa-chevron-left"></i>
+                                </button>
+                                <button class="btn btn-outline-primary" id="todayBtnMain">
+                                    Today
+                                </button>
+                                <button class="btn btn-outline-primary" id="nextBtn">
+                                    <i class="fa fa-chevron-right"></i>
+                                </button>
+                            </div>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-primary active" data-view="dayGridMonth">
+                                    <i class="fa fa-calendar"></i> Month
+                                </button>
+                                <button class="btn btn-outline-primary" data-view="timeGridWeek">
+                                    <i class="fa fa-calendar-week"></i> Week
+                                </button>
+                                <button class="btn btn-outline-primary" data-view="timeGridDay">
+                                    <i class="fa fa-calendar-day"></i> Day
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <h3 class="text-center mt-3" id="currentMonth">Loading...</h3>
+                </div>
+            </div>
+
+            <!-- Calendar Container -->
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <div id="calendar"></div>
+                </div>
+            </div>
+
+            <!-- Event List (Mobile/Alternative View) -->
+            <div class="card shadow-sm mt-3 d-none d-md-block">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fa fa-list"></i> Upcoming Events</h5>
+                </div>
+                <div class="card-body">
+                    <div id="upcomingEvents" class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Event Details Modal -->
+<div class="modal fade" id="eventModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">
+                    <i class="fa fa-calendar-check"></i> Event Details
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="info-card mb-3">
+                            <h6><i class="fa fa-info-circle text-primary"></i> Basic Info</h6>
+                            <p><strong>Date:</strong> <span id="modalDate" class="badge badge-info"></span></p>
+                            <p><strong>Time:</strong> <span id="modalTime" class="badge badge-secondary"></span></p>
+                            <p><strong>Status:</strong> <span id="modalStatus" class="badge badge-success">Active</span></p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-card mb-3">
+                            <h6><i class="fa fa-paperclip text-warning"></i> Attachments</h6>
+                            <p id="modalNote">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h6><i class="fa fa-file-alt text-info"></i> Description</h6>
+                    <div id="modalDescription" class="p-3 bg-light rounded description-box">
+                        Loading description...
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <i class="fa fa-mouse-pointer"></i> Click on description to copy
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary" id="copyEventBtn">
+                        <i class="fa fa-copy"></i> Copy Details
+                    </button>
+                    <button type="button" class="btn btn-primary" id="editEventBtn">
+                        <i class="fa fa-edit"></i> Edit
+                    </button>
+                    <button type="button" class="btn btn-danger" id="deleteEventBtn">
+                        <i class="fa fa-trash"></i> Delete
+                    </button>
+                </div>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascript %}
+<!-- FullCalendar CSS -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+<!-- FullCalendar JS -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+
+<style>
+    /* Custom Calendar Styles */
+    .sidebar {
+        background-color: #f8f9fa;
+        min-height: calc(100vh - 76px);
+        padding-top: 15px;
+        border-right: 1px solid #dee2e6;
+    }
+
+    #calendar {
+        min-height: 600px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* FullCalendar Customization */
+    .fc {
+        font-size: 14px;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 1.5em;
+        color: white !important;
+        font-weight: 600;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+
+    .fc .fc-col-header-cell {
+        background-color: #007bff;
+        color: white;
+        padding: 10px 0;
+        font-weight: 600;
+    }
+
+    .fc .fc-daygrid-day {
+        border: 1px solid #dee2e6;
+    }
+
+    .fc .fc-daygrid-day.fc-day-today {
+        background-color: rgba(0, 123, 255, 0.1) !important;
+    }
+
+    .fc .fc-daygrid-day-number {
+        color: #495057;
+        font-weight: bold;
+        padding: 5px;
+    }
+
+    /* Event styling */
+    .fc-event {
+        border: none;
+        border-radius: 4px;
+        padding: 2px 5px;
+        margin: 1px 0;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .fc-event:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .fc-event-title {
+        color: white !important;
+        font-weight: 600;
+        text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
+    }
+
+    .fc-event-time {
+        color: white !important;
+        font-weight: bold;
+    }
+
+    /* Calendar header buttons */
+    .fc .fc-button {
+        background-color: #007bff;
+        border-color: #007bff;
+        font-weight: 500;
+        color: white !important;
+    }
+
+    .fc .fc-button:hover {
+        background-color: #0056b3;
+        border-color: #0056b3;
+    }
+
+    .fc .fc-button-primary:not(:disabled).fc-button-active {
+        background-color: #0056b3;
+        border-color: #0056b3;
+    }
+
+    /* Color options */
+    .color-option {
+        border: 2px solid transparent;
+        transition: all 0.2s ease;
+    }
+
+    .color-option:hover {
+        transform: scale(1.1);
+    }
+
+    .color-option.selected {
+        border: 2px solid #333;
+        box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    }
+
+    /* Modal and description styles */
+    .info-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-left: 4px solid #007bff;
+    }
+
+    .description-box {
+        min-height: 80px;
+        max-height: 200px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .description-box:hover {
+        background-color: #e9ecef;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .note-preview {
+        font-size: 0.9em;
+        color: #495057;
+        border: 1px dashed #6c757d;
+        max-height: 100px;
+        overflow-y: auto;
+    }
+
+    /* Event colors */
+    .event-with-note {
+        border-left: 4px solid #ffc107 !important;
+    }
+
+    .event-with-description {
+        border-right: 4px solid #28a745 !important;
+    }
+
+    /* Upcoming Events Styling */
+    .upcoming-events-list {
+        max-height: 500px;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+
+    .event-list-item {
+        transition: all 0.3s ease;
+        border: 1px solid #e9ecef;
+        margin-bottom: 15px;
+        padding: 15px;
+        border-radius: 8px;
+    }
+
+    .event-list-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        background: white !important;
+    }
+
+    .event-title {
+        color: #2c3e50;
+        font-size: 1rem;
+        font-weight: bold;
+    }
+
+    .event-action-btn {
+        opacity: 0.7;
+        transition: opacity 0.2s ease;
+    }
+
+    .event-list-item:hover .event-action-btn {
+        opacity: 1;
+    }
+
+    .note-preview-container {
+        background: linear-gradient(90deg, #fff8e1, #fff) !important;
+        border-left-width: 4px !important;
+        border-left-color: #ffc107 !important;
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 6px;
+    }
+
+    .note-text {
+        color: #5a6268;
+        font-size: 0.85rem;
+        line-height: 1.4;
+        display: block;
+        font-style: italic;
+    }
+
+    .description-text {
+        color: #6c757d;
+        background: #f8f9fa;
+        padding: 4px 8px;
+        border-radius: 4px;
+        border-left: 3px solid #6c757d;
+        margin-top: 5px;
+        display: block;
+    }
+
+    /* Scrollbar styling for events list */
+    .upcoming-events-list::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .upcoming-events-list::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+
+    .upcoming-events-list::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+    }
+
+    .upcoming-events-list::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+
+    /* Badge styling */
+    .badge-pill {
+        font-size: 0.7rem;
+        padding: 0.2em 0.6em;
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+        .sidebar {
+            min-height: auto;
+            border-right: none;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+
+        #calendar {
+            min-height: 400px;
+        }
+
+        .fc .fc-toolbar {
+            flex-direction: column;
+        }
+
+        .fc .fc-toolbar-title {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+
+        .event-list-item {
+            padding: 12px !important;
+        }
+
+        .event-title {
+            font-size: 0.9rem;
+        }
+    }
+
+    /* Loading animation */
+    .calendar-loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 300px;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let calendar;
+        let currentEventId = null;
+        const today = new Date().toISOString().split('T')[0];
+
+        // Initialize
+        initCalendar();
+        loadNotes();
+        loadStats();
+        loadUpcomingEvents();
+
+        // Set today's date in form
+        document.getElementById('eventDate').value = today;
+
+        // Color picker
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+                document.getElementById('eventColor').value = this.dataset.color;
+            });
+        });
+
+        // Set default color
+        document.querySelector('.color-option[data-color="#007bff"]').classList.add('selected');
+
+        // Form submission
+        document.getElementById('eventForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveEvent();
+        });
+
+        // Clear form
+        document.getElementById('clearFormBtn').addEventListener('click', resetForm);
+
+        // Navigation
+        document.getElementById('todayBtn').addEventListener('click', goToToday);
+        document.getElementById('todayBtnMain').addEventListener('click', goToToday);
+        document.getElementById('prevBtn').addEventListener('click', () => calendar.prev());
+        document.getElementById('nextBtn').addEventListener('click', () => calendar.next());
+
+        // View buttons
+        document.querySelectorAll('[data-view]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-view]').forEach(b => {
+                    b.classList.remove('active');
+                    b.classList.remove('btn-primary');
+                    b.classList.add('btn-outline-primary');
+                });
+                this.classList.add('active');
+                this.classList.add('btn-primary');
+                this.classList.remove('btn-outline-primary');
+                calendar.changeView(this.dataset.view);
+            });
+        });
+
+        // Delete all events
+        document.getElementById('deleteAllBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to delete ALL events? This cannot be undone!')) {
+                deleteAllEvents();
+            }
+        });
+
+        // Modal buttons
+        document.getElementById('editEventBtn').addEventListener('click', function() {
+            $('#eventModal').modal('hide');
+            editEvent(currentEventId);
+        });
+
+        document.getElementById('deleteEventBtn').addEventListener('click', function() {
+            if (confirm('Delete this event?')) {
+                deleteEvent(currentEventId);
+                $('#eventModal').modal('hide');
+            }
+        });
+
+        // Copy event button
+        document.getElementById('copyEventBtn').addEventListener('click', copyEventToClipboard);
+
+        function initCalendar() {
+            const calendarEl = document.getElementById('calendar');
+
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                themeSystem: 'bootstrap',
+                height: 'auto',
+                editable: true,
+                selectable: true,
+                nowIndicator: true,
+                dayMaxEvents: 3,
+                events: '/calendar/events',
+                eventTextColor: '#ffffff',
+                eventDisplay: 'block',
+                eventTimeFormat: {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    meridiem: 'short'
+                },
+                eventClick: function(info) {
+                    showEventDetails(info.event);
+                },
+                dateClick: function(info) {
+                    updateFormDate(info.dateStr);
+                    document.getElementById('eventTitle').focus();
+                },
+                eventDrop: function(info) {
+                    updateEventDate(info.event.id, info.event.startStr);
+                },
+                eventDidMount: function(info) {
+                    // Add tooltip with description
+                    if (info.event.extendedProps?.description) {
+                        info.el.setAttribute('data-description', info.event.extendedProps.description);
+                        info.el.title = info.event.extendedProps.description;
+                    }
+
+                    // Add indicator for events with notes
+                    if (info.event.extendedProps?.hasNote) {
+                        info.el.classList.add('event-with-note');
+                        const noteIndicator = document.createElement('span');
+                        noteIndicator.innerHTML = ' 📝';
+                        info.el.querySelector('.fc-event-title')?.appendChild(noteIndicator);
+                    }
+
+                    // Add indicator for events with description
+                    if (info.event.extendedProps?.description) {
+                        info.el.classList.add('event-with-description');
+                    }
+                },
+                datesSet: function(info) {
+                    updateCurrentMonth(info.view.currentStart);
+                },
+                loading: function(isLoading) {
+                    if (isLoading) {
+                        console.log('🔄 Calendar loading...');
+                    } else {
+                        console.log('✅ Calendar loaded');
+                    }
+                }
+            });
+
+            calendar.render();
+            updateCurrentMonth(new Date());
+        }
+
+        function updateCurrentMonth(date) {
+            const monthNames = ["January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"];
+            const month = monthNames[date.getMonth()];
+            const year = date.getFullYear();
+            document.getElementById('currentMonth').textContent = `${month} ${year}`;
+        }
+
+        function goToToday() {
+            calendar.today();
+            updateFormDate(today);
+        }
+
+        function updateFormDate(dateStr) {
+            document.getElementById('eventDate').value = dateStr;
+        }
+
+        function loadNotes() {
+            console.log("🔄 Loading notes for dropdown...");
+
+            fetch('/calendar/notes')
+                .then(response => {
+                    console.log("Notes API status:", response.status);
+                    if (!response.ok) {
+                        throw new Error(`API error: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(notes => {
+                    console.log(`📝 Received ${notes.length} notes:`, notes);
+
+                    const select = document.getElementById('attachNote');
+                    select.innerHTML = '<option value="">-- No note --</option>';
+
+                    if (notes.length === 0) {
+                        console.warn("No notes found for current user!");
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.textContent = '⚠️ You have no notes yet. Create notes first.';
+                        option.disabled = true;
+                        select.appendChild(option);
+                        return;
+                    }
+
+                    // Group by recent
+                    notes.forEach(note => {
+                        const option = document.createElement('option');
+                        option.value = note.id;
+                        option.textContent = `📝 ${note.content}`;
+                        option.title = `Created: ${note.created_at}\nContent: ${note.fullContent}`;
+                        select.appendChild(option);
+                    });
+
+                    console.log("✅ Notes dropdown populated successfully");
+                })
+                .catch(error => {
+                    console.error("❌ Failed to load notes:", error);
+                    const select = document.getElementById('attachNote');
+                    select.innerHTML = '<option value="">-- Error loading notes --</option>';
+
+                    // Show error in UI
+                    showNotification('⚠️ Could not load notes. Please refresh the page.', 'warning');
+                });
+        }
+
+        function loadStats() {
+            fetch('/calendar/events')
+                .then(response => response.json())
+                .then(events => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const thisMonth = new Date().getMonth();
+                    const thisYear = new Date().getFullYear();
+
+                    const todayCount = events.filter(e => e.start === today).length;
+                    const monthCount = events.filter(e => {
+                        const eventDate = new Date(e.start);
+                        return eventDate.getMonth() === thisMonth && eventDate.getFullYear() === thisYear;
+                    }).length;
+
+                    document.getElementById('totalEvents').textContent = events.length;
+                    document.getElementById('todayEvents').textContent = todayCount;
+                    document.getElementById('monthEvents').textContent = monthCount;
+                })
+                .catch(error => console.error('Error loading stats:', error));
+        }
+
+        function loadUpcomingEvents() {
+            console.log("🔄 Loading upcoming events with notes...");
+
+            fetch('/calendar/events')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`API error: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(events => {
+                    console.log(`📅 Received ${events.length} events`);
+
+                    const container = document.getElementById('upcomingEvents');
+
+                    if (events.length === 0) {
+                        container.innerHTML = `
+                            <div class="text-center py-4">
+                                <i class="fa fa-calendar-times text-muted fa-3x mb-3"></i>
+                                <p class="text-muted">No upcoming events</p>
+                                <button class="btn btn-sm btn-outline-primary mt-2" onclick="document.getElementById('eventTitle').focus()">
+                                    <i class="fa fa-plus"></i> Create your first event
+                                </button>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    // Sort by date (closest first)
+                    events.sort((a, b) => new Date(a.start) - new Date(b.start));
+
+                    // Get next 5 events (or all if less than 5)
+                    const upcoming = events.slice(0, 5);
+
+                    let html = '<div class="upcoming-events-list">';
+
+                    upcoming.forEach(event => {
+                        const extendedProps = event.extendedProps || {};
+                        const eventDate = new Date(event.start);
+
+                        // Format date
+                        const dateStr = eventDate.toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric'
+                        });
+
+                        // Format time if exists
+                        const timeStr = extendedProps.startTime ?
+                            `<small class="text-info"><i class="fa fa-clock"></i> ${extendedProps.startTime}</small>` :
+                            '<small class="text-muted"><i class="fa fa-clock"></i> All day</small>';
+
+                        // Check if event has a note
+                        const hasNote = extendedProps.noteId || extendedProps.noteContent;
+                        const noteBadge = hasNote ?
+                            '<span class="badge badge-warning badge-pill ml-2"><i class="fa fa-sticky-note"></i> Has note</span>' :
+                            '';
+
+                        // Get note preview (first 60 characters)
+                        let notePreview = '';
+                        if (extendedProps.noteContent) {
+                            notePreview = `
+                                <div class="note-preview-container mt-2 p-2 bg-light rounded border-left-3">
+                                    <small class="text-muted d-block"><i class="fa fa-sticky-note text-warning"></i> Attached note:</small>
+                                    <small class="note-text">${extendedProps.noteContent}</small>
+                                    ${extendedProps.noteId ?
+                                        `<button class="btn btn-sm btn-outline-info btn-block mt-1" onclick="viewNoteFromEvent(${extendedProps.noteId})">
+                                            <i class="fa fa-external-link-alt"></i> View Note
+                                        </button>` : ''
+                                    }
+                                </div>
+                            `;
+                        } else if (extendedProps.noteId) {
+                            notePreview = `
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="fa fa-sticky-note text-info"></i>
+                                        Note #${extendedProps.noteId} attached
+                                    </small>
+                                    <button class="btn btn-sm btn-outline-info btn-block mt-1" onclick="viewNoteFromEvent(${extendedProps.noteId})">
+                                        <i class="fa fa-external-link-alt"></i> View Note
+                                    </button>
+                                </div>
+                            `;
+                        }
+
+                        // Event description (if exists)
+                        const description = extendedProps.description ?
+                            `<small class="d-block text-muted mt-1 description-text">
+                                <i class="fa fa-align-left"></i> ${extendedProps.description.substring(0, 80)}${extendedProps.description.length > 80 ? '...' : ''}
+                            </small>` : '';
+
+                        // Event item HTML
+                        html += `
+                            <div class="event-list-item mb-3 p-3 rounded shadow-sm"
+                                 style="border-left: 4px solid ${event.color || '#007bff'}; background: linear-gradient(90deg, ${event.color || '#007bff'}10, white);">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center">
+                                            <h6 class="mb-0 font-weight-bold event-title">${event.title}</h6>
+                                            ${noteBadge}
+                                            ${hasNote ? '<span class="badge badge-light badge-pill ml-1"><i class="fa fa-paperclip"></i></span>' : ''}
+                                        </div>
+                                        <div class="mt-2">
+                                            <small class="text-primary">
+                                                <i class="fa fa-calendar-day"></i> ${dateStr}
+                                            </small>
+                                            <span class="mx-2">•</span>
+                                            ${timeStr}
+                                        </div>
+                                        ${description}
+                                        ${notePreview}
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-primary ml-2 event-action-btn"
+                                            onclick="editEventFromList(${event.id})"
+                                            title="Edit this event">
+                                        <i class="fa fa-edit"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    // Add "View All" button if there are more events
+                    if (events.length > 5) {
+                        html += `
+                            <div class="text-center mt-3">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="showAllEvents()">
+                                    <i class="fa fa-list"></i> View all ${events.length} events
+                                </button>
+                            </div>
+                        `;
+                    }
+
+                    html += '</div>';
+                    container.innerHTML = html;
+
+                    console.log("✅ Upcoming events loaded with notes");
+                })
+                .catch(error => {
+                    console.error("❌ Failed to load upcoming events:", error);
+                    const container = document.getElementById('upcomingEvents');
+                    container.innerHTML = `
+                        <div class="alert alert-warning text-center">
+                            <i class="fa fa-exclamation-triangle"></i> Could not load events
+                            <button class="btn btn-sm btn-outline-secondary mt-2 d-block mx-auto" onclick="loadUpcomingEvents()">
+                                <i class="fa fa-redo"></i> Try Again
+                            </button>
+                        </div>
+                    `;
+                });
+        }
+
+        // Helper functions for upcoming events actions
+        window.viewNoteFromEvent = function(noteId) {
+            console.log(`Opening note ${noteId} from event list`);
+
+            // Redirect to home page with highlight
+            window.location.href = `/?highlight=${noteId}&scrollToNote=true`;
+        };
+
+        window.editEventFromList = function(eventId) {
+            console.log(`Editing event ${eventId} from list`);
+
+            // Fetch event details and populate form
+            fetch(`/calendar/events/${eventId}`)
+                .then(response => response.json())
+                .then(event => {
+                    if (event.error) {
+                        alert('Error: ' + event.error);
+                        return;
+                    }
+
+                    // Populate edit form
+                    document.getElementById('eventId').value = eventId;
+                    document.getElementById('eventTitle').value = event.title;
+                    document.getElementById('eventDate').value = event.date.split('T')[0];
+                    document.getElementById('startTime').value = event.startTime || '';
+                    document.getElementById('endTime').value = event.endTime || '';
+                    document.getElementById('eventDescription').value = event.description || '';
+                    document.getElementById('eventColor').value = event.color || '#007bff';
+                    document.getElementById('attachNote').value = event.noteId || '';
+
+                    // Update color picker
+                    document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+                    const colorOpt = document.querySelector(`.color-option[data-color="${event.color || '#007bff'}"]`);
+                    if (colorOpt) colorOpt.classList.add('selected');
+
+                    // Update button text
+                    document.getElementById('saveEventBtn').innerHTML = '<i class="fa fa-save"></i> Update Event';
+                    document.getElementById('clearFormBtn').style.display = 'block';
+
+                    // Focus and scroll to form
+                    document.getElementById('eventTitle').focus();
+                    document.querySelector('.sidebar').scrollIntoView({ behavior: 'smooth' });
+
+                    showNotification(`✏️ Editing event: ${event.title}`, 'info');
+                })
+                .catch(error => {
+                    console.error('Error loading event:', error);
+                    alert('Error loading event details');
+                });
+        };
+
+        window.showAllEvents = function() {
+            // Switch calendar view to show all events
+            calendar.changeView('dayGridMonth');
+            calendar.gotoDate(new Date());
+            showNotification('📅 Showing all events in calendar', 'info');
+        };
+
+        function saveEvent() {
+            const eventId = document.getElementById('eventId').value;
+            const url = eventId ? `/calendar/events/${eventId}` : '/calendar/events';
+            const method = eventId ? 'PUT' : 'POST';
+
+            const eventData = {
+                title: document.getElementById('eventTitle').value,
+                date: document.getElementById('eventDate').value,
+                startTime: document.getElementById('startTime').value || null,
+                endTime: document.getElementById('endTime').value || null,
+                description: document.getElementById('eventDescription').value,
+                color: document.getElementById('eventColor').value,
+                noteId: document.getElementById('attachNote').value || null
+            };
+
+            if (!eventData.title.trim()) {
+                alert('Please enter a title for the event');
+                return;
+            }
+
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(eventData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    calendar.refetchEvents();
+                    resetForm();
+                    loadStats();
+                    loadUpcomingEvents();
+                    showNotification('✅ Event saved successfully!', 'success');
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error saving event. Please try again.');
+            });
+        }
+
+        function showEventDetails(event) {
+            currentEventId = event.id;
+            const extendedProps = event.extendedProps || {};
+
+            document.getElementById('modalTitle').textContent = event.title;
+            document.getElementById('modalTitle').style.color = event.backgroundColor;
+
+            // Format date
+            const eventDate = new Date(event.start);
+            const dateStr = eventDate.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            document.getElementById('modalDate').textContent = dateStr;
+
+            // Format time
+            const startTime = extendedProps.startTime;
+            const endTime = extendedProps.endTime;
+            const timeStr = startTime ?
+                `${startTime} ${endTime ? ' - ' + endTime : ''}` :
+                'All day event';
+            document.getElementById('modalTime').textContent = timeStr;
+
+            // Description - show as clickable if there's content
+            const desc = extendedProps.description || 'No description provided';
+            const descElement = document.getElementById('modalDescription');
+            descElement.textContent = desc;
+
+            if (desc && desc !== 'No description provided') {
+                descElement.style.cursor = 'pointer';
+                descElement.style.color = '#007bff';
+                descElement.title = 'Click to copy description';
+                descElement.onclick = function() {
+                    navigator.clipboard.writeText(desc).then(() => {
+                        showNotification('📋 Description copied to clipboard!', 'success');
+                    });
+                };
+            } else {
+                descElement.style.cursor = 'default';
+                descElement.style.color = 'inherit';
+                descElement.onclick = null;
+            }
+
+            // Note - make it interactive if there's a note
+            const noteElement = document.getElementById('modalNote');
+            if (extendedProps.noteId && extendedProps.noteContent) {
+                noteElement.innerHTML = `
+                    <div class="note-attachment">
+                        <i class="fa fa-sticky-note text-warning"></i>
+                        <strong>Note attached:</strong>
+                        <div class="note-preview p-2 mt-1 bg-light rounded">
+                            ${extendedProps.noteContent}
+                        </div>
+                        <button class="btn btn-sm btn-outline-info mt-2" onclick="viewNoteFromEvent(${extendedProps.noteId})">
+                            <i class="fa fa-external-link-alt"></i> View Note
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary mt-2 ml-1" onclick="copyNoteContent('${extendedProps.noteContent.replace(/'/g, "\\'")}')">
+                            <i class="fa fa-copy"></i> Copy
+                        </button>
+                    </div>
+                `;
+            } else if (extendedProps.noteId) {
+                noteElement.innerHTML = `
+                    <span class="text-info">
+                        <i class="fa fa-sticky-note"></i> Note #${extendedProps.noteId} attached
+                    </span>
+                    <button class="btn btn-sm btn-outline-info ml-2" onclick="viewNoteFromEvent(${extendedProps.noteId})">
+                        View
+                    </button>
+                `;
+            } else {
+                noteElement.innerHTML = '<span class="text-muted"><i class="fa fa-sticky-note"></i> No note attached</span>';
+            }
+
+            $('#eventModal').modal('show');
+        }
+
+        // Helper functions for notes
+        function copyNoteContent(content) {
+            navigator.clipboard.writeText(content).then(() => {
+                showNotification('📋 Note content copied to clipboard!', 'success');
+            });
+        }
+
+        function copyEventToClipboard() {
+            const title = document.getElementById('modalTitle').textContent;
+            const date = document.getElementById('modalDate').textContent;
+            const time = document.getElementById('modalTime').textContent;
+            const description = document.getElementById('modalDescription').textContent;
+
+            const eventText = `
+Event: ${title}
+Date: ${date}
+Time: ${time}
+Description: ${description}
+---`;
+
+            navigator.clipboard.writeText(eventText).then(() => {
+                showNotification('📋 Event details copied to clipboard!', 'success');
+            });
+        }
+
+        function editEvent(eventId) {
+            fetch(`/calendar/events/${eventId}`)
+                .then(response => response.json())
+                .then(event => {
+                    if (event.error) {
+                        alert('Error: ' + event.error);
+                        return;
+                    }
+
+                    document.getElementById('eventId').value = eventId;
+                    document.getElementById('eventTitle').value = event.title;
+                    document.getElementById('eventDate').value = event.date.split('T')[0];
+                    document.getElementById('startTime').value = event.startTime || '';
+                    document.getElementById('endTime').value = event.endTime || '';
+                    document.getElementById('eventDescription').value = event.description || '';
+                    document.getElementById('eventColor').value = event.color || '#007bff';
+                    document.getElementById('attachNote').value = event.noteId || '';
+
+                    // Update color picker
+                    document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+                    const colorOpt = document.querySelector(`.color-option[data-color="${event.color || '#007bff'}"]`);
+                    if (colorOpt) colorOpt.classList.add('selected');
+
+                    document.getElementById('saveEventBtn').innerHTML = '<i class="fa fa-save"></i> Update Event';
+                    document.getElementById('clearFormBtn').style.display = 'block';
+
+                    document.getElementById('eventTitle').focus();
+                })
+                .catch(error => {
+                    console.error('Error loading event:', error);
+                    alert('Error loading event details');
+                });
+        }
+
+        function deleteEvent(eventId) {
+            fetch(`/calendar/events/${eventId}`, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        calendar.refetchEvents();
+                        loadStats();
+                        loadUpcomingEvents();
+                        showNotification('🗑️ Event deleted', 'info');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error deleting event');
+                });
+        }
+
+        function deleteAllEvents() {
+            fetch('/calendar/events')
+                .then(response => response.json())
+                .then(events => {
+                    const deletePromises = events.map(event =>
+                        fetch(`/calendar/events/${event.id}`, { method: 'DELETE' })
+                    );
+
+                    Promise.all(deletePromises)
+                        .then(() => {
+                            calendar.refetchEvents();
+                            loadStats();
+                            loadUpcomingEvents();
+                            showNotification('🗑️ All events deleted', 'info');
+                        })
+                        .catch(error => {
+                            console.error('Error deleting events:', error);
+                            alert('Error deleting some events');
+                        });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading events');
+                });
+        }
+
+        function updateEventDate(eventId, newDate) {
+            fetch(`/calendar/events/${eventId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: newDate.split('T')[0] })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    calendar.refetchEvents();
+                    showNotification('⚠️ Error updating event date', 'warning');
+                } else {
+                    showNotification('📅 Event date updated', 'success');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                calendar.refetchEvents();
+            });
+        }
+
+        function resetForm() {
+            document.getElementById('eventForm').reset();
+            document.getElementById('eventId').value = '';
+            document.getElementById('eventDate').value = today;
+            document.getElementById('saveEventBtn').innerHTML = '<i class="fa fa-save"></i> Save Event';
+            document.getElementById('clearFormBtn').style.display = 'none';
+
+            // Reset color picker
+            document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+            document.querySelector('.color-option[data-color="#007bff"]').classList.add('selected');
+            document.getElementById('eventColor').value = '#007bff';
+        }
+
+        function showNotification(message, type = 'info') {
+            const alertClass = type === 'success' ? 'alert-success' :
+                              type === 'warning' ? 'alert-warning' : 'alert-info';
+
+            const notification = document.createElement('div');
+            notification.className = `alert ${alertClass} alert-dismissible fade show`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 1050;
+                min-width: 300px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            `;
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="close" data-dismiss="alert">
+                    <span>&times;</span>
+                </button>
+            `;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 3000);
+        }
+    });
+</script>
+{% endblock %}

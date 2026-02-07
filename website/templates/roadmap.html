@@ -1,0 +1,755 @@
+{% extends "base.html" %}
+
+{% block title %}Roadmap{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <div class="row">
+        <!-- Sidebar for adding/editing goals -->
+        <div class="col-md-4 col-lg-3">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fa fa-road"></i> Roadmap Manager
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="goalForm">
+                        <div class="form-group">
+                            <label for="goalTitle" class="font-weight-bold">Goal Title *</label>
+                            <input type="text" class="form-control" id="goalTitle"
+                                   placeholder="Learn Python, Build Project..." required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="goalDescription">Description</label>
+                            <textarea class="form-control" id="goalDescription"
+                                      rows="3" placeholder="Details, steps, resources..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="goalDeadline">Deadline (Optional)</label>
+                            <input type="date" class="form-control" id="goalDeadline">
+                            <small class="form-text text-muted">Set a target date for completion</small>
+                        </div>
+                        
+                        <input type="hidden" id="goalId">
+                        
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-success btn-block" id="saveGoalBtn">
+                                <i class="fa fa-plus"></i> Add Goal
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-block mt-2"
+                                    id="cancelEditBtn" style="display:none;">
+                                <i class="fa fa-times"></i> Cancel Edit
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Stats Card -->
+            <div class="card shadow-sm mt-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fa fa-chart-pie"></i> Progress</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="progress" style="height: 25px;">
+                            <div id="progressBar" class="progress-bar bg-success" 
+                                 style="width: 0%">0%</div>
+                        </div>
+                        <small class="text-muted" id="progressText">0/0 goals completed</small>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-item text-center p-2 border rounded m-1">
+                            <div class="stat-value text-primary" id="totalGoals">0</div>
+                            <div class="stat-label">Total</div>
+                        </div>
+                        <div class="stat-item text-center p-2 border rounded m-1">
+                            <div class="stat-value text-success" id="completedGoals">0</div>
+                            <div class="stat-label">Completed</div>
+                        </div>
+                        <div class="stat-item text-center p-2 border rounded m-1">
+                            <div class="stat-value text-warning" id="pendingGoals">0</div>
+                            <div class="stat-label">Pending</div>
+                        </div>
+                        <div class="stat-item text-center p-2 border rounded m-1">
+                            <div class="stat-value text-danger" id="overdueGoals">0</div>
+                            <div class="stat-label">Overdue</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="card shadow-sm mt-3">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="fa fa-bolt"></i> Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-outline-primary btn-block mb-2" id="markAllCompleteBtn">
+                        <i class="fa fa-check-circle"></i> Mark All Complete
+                    </button>
+                    <button class="btn btn-outline-danger btn-block" id="clearAllBtn">
+                        <i class="fa fa-trash-alt"></i> Clear Completed
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Roadmap Area -->
+        <div class="col-md-8 col-lg-9">
+            <!-- Roadmap Header -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2 class="mb-0">
+                            <i class="fa fa-road text-info"></i>
+                            My Learning/Project Roadmap
+                        </h2>
+                        <div class="d-flex">
+                            <button class="btn btn-outline-info mr-2" id="sortByDeadlineBtn">
+                                <i class="fa fa-calendar"></i> Sort by Deadline
+                            </button>
+                            <button class="btn btn-outline-info" id="sortByCompletionBtn">
+                                <i class="fa fa-check"></i> Sort by Status
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-muted mt-2">
+                        Drag and drop to reorder your goals. Click on a goal to edit it.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Roadmap Goals List -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div id="roadmapList" class="roadmap-container">
+                        <!-- Goals will be loaded here dynamically -->
+                        <div class="text-center py-5">
+                            <i class="fa fa-road text-muted fa-3x mb-3"></i>
+                            <h4 class="text-muted">No goals yet</h4>
+                            <p class="text-muted">Add your first goal using the form on the left!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Goal Details Modal -->
+<div class="modal fade" id="goalModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="modalGoalTitle">
+                    <i class="fa fa-bullseye"></i> Goal Details
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="goal-details">
+                    <p><strong>Description:</strong></p>
+                    <div id="modalGoalDescription" class="p-3 bg-light rounded mb-3">
+                        No description provided.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Deadline:</strong> 
+                                <span id="modalGoalDeadline" class="badge badge-secondary">Not set</span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> 
+                                <span id="modalGoalStatus" class="badge badge-success">Active</span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <p><strong>Created:</strong> <span id="modalGoalCreated"></span></p>
+                        <p><strong>Completed:</strong> <span id="modalGoalCompleted">Not completed yet</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-primary" id="toggleCompleteBtn">
+                    <i class="fa fa-check"></i> Toggle Complete
+                </button>
+                <button type="button" class="btn btn-primary" id="editGoalBtn">
+                    <i class="fa fa-edit"></i> Edit
+                </button>
+                <button type="button" class="btn btn-danger" id="deleteGoalBtn">
+                    <i class="fa fa-trash"></i> Delete
+                </button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascript %}
+<!-- Include SortableJS for drag and drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+
+<style>
+    /* Custom Roadmap Styles */
+    .roadmap-container {
+        min-height: 400px;
+    }
+    
+    .goal-card {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        cursor: move;
+        transition: all 0.3s ease;
+        border-left: 5px solid #17a2b8;
+    }
+    
+    .goal-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .goal-card.completed {
+        border-left-color: #28a745;
+        background-color: #f8fff9;
+        opacity: 0.8;
+    }
+    
+    .goal-card.overdue {
+        border-left-color: #dc3545;
+        background-color: #fff8f8;
+    }
+    
+    .goal-card .goal-title {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 8px;
+    }
+    
+    .goal-card .goal-description {
+        color: #6c757d;
+        font-size: 0.9em;
+        margin-bottom: 10px;
+        max-height: 60px;
+        overflow: hidden;
+    }
+    
+    .goal-card .goal-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85em;
+    }
+    
+    .goal-card .deadline-badge {
+        font-size: 0.8em;
+        padding: 3px 8px;
+    }
+    
+    .goal-card .actions {
+        opacity: 0.7;
+        transition: opacity 0.3s ease;
+    }
+    
+    .goal-card:hover .actions {
+        opacity: 1;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .stat-item {
+        background: #f8f9fa;
+    }
+    
+    .stat-value {
+        font-size: 1.5em;
+        font-weight: bold;
+    }
+    
+    .stat-label {
+        font-size: 0.85em;
+        color: #6c757d;
+    }
+    
+    /* Progress bar */
+    .progress {
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    
+    /* Sortable placeholder */
+    .sortable-ghost {
+        opacity: 0.4;
+        background-color: #f8f9fa;
+    }
+    
+    .sortable-chosen {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .goal-card .goal-meta {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .goal-card .actions {
+            margin-top: 10px;
+            width: 100%;
+            text-align: right;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let currentGoalId = null;
+        let goals = [];
+        
+        // Initialize
+        loadGoals();
+        loadStats();
+        initSortable();
+        
+        // Set default deadline to 7 days from now
+        const defaultDeadline = new Date();
+        defaultDeadline.setDate(defaultDeadline.getDate() + 7);
+        document.getElementById('goalDeadline').value = defaultDeadline.toISOString().split('T')[0];
+        
+        // Form submission
+        document.getElementById('goalForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveGoal();
+        });
+        
+        // Cancel edit
+        document.getElementById('cancelEditBtn').addEventListener('click', resetForm);
+        
+        // Quick actions
+        document.getElementById('markAllCompleteBtn').addEventListener('click', markAllComplete);
+        document.getElementById('clearAllBtn').addEventListener('click', clearCompleted);
+        document.getElementById('sortByDeadlineBtn').addEventListener('click', sortByDeadline);
+        document.getElementById('sortByCompletionBtn').addEventListener('click', sortByCompletion);
+        
+        // Modal buttons
+        document.getElementById('toggleCompleteBtn').addEventListener('click', function() {
+            toggleGoalComplete(currentGoalId);
+            $('#goalModal').modal('hide');
+        });
+        
+        document.getElementById('editGoalBtn').addEventListener('click', function() {
+            $('#goalModal').modal('hide');
+            editGoal(currentGoalId);
+        });
+        
+        document.getElementById('deleteGoalBtn').addEventListener('click', function() {
+            if (confirm('Delete this goal?')) {
+                deleteGoal(currentGoalId);
+                $('#goalModal').modal('hide');
+            }
+        });
+        
+        function initSortable() {
+            const roadmapList = document.getElementById('roadmapList');
+            
+            if (roadmapList) {
+                Sortable.create(roadmapList, {
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen',
+                    onEnd: function(evt) {
+                        reorderGoals();
+                    }
+                });
+            }
+        }
+        
+        function loadGoals() {
+            fetch('/roadmap/goals')
+                .then(response => response.json())
+                .then(data => {
+                    goals = data;
+                    renderGoals();
+                })
+                .catch(error => {
+                    console.error('Error loading goals:', error);
+                    showNotification('Error loading goals', 'error');
+                });
+        }
+        
+        function renderGoals() {
+            const container = document.getElementById('roadmapList');
+            
+            if (goals.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fa fa-road text-muted fa-3x mb-3"></i>
+                        <h4 class="text-muted">No goals yet</h4>
+                        <p class="text-muted">Add your first goal using the form on the left!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            
+            goals.forEach(goal => {
+                const isCompleted = goal.is_completed;
+                const isOverdue = goal.is_overdue;
+                
+                // Determine card class
+                let cardClass = 'goal-card';
+                if (isCompleted) cardClass += ' completed';
+                if (isOverdue) cardClass += ' overdue';
+                
+                // Format deadline
+                let deadlineHtml = '';
+                if (goal.deadline) {
+                    const deadlineClass = isOverdue ? 'badge-danger' : 'badge-info';
+                    deadlineHtml = `
+                        <span class="badge ${deadlineClass} deadline-badge">
+                            <i class="fa fa-calendar"></i> ${goal.deadline}
+                            ${goal.days_remaining > 0 ? ` (${goal.days_remaining}d)` : ''}
+                        </span>
+                    `;
+                }
+                
+                // Status badge
+                const statusBadge = isCompleted ? 
+                    '<span class="badge badge-success"><i class="fa fa-check"></i> Completed</span>' :
+                    '<span class="badge badge-warning"><i class="fa fa-clock"></i> Pending</span>';
+                
+                html += `
+                    <div class="${cardClass}" data-goal-id="${goal.id}">
+                        <div class="goal-title">
+                            ${goal.title}
+                            <div class="float-right actions">
+                                <button class="btn btn-sm btn-outline-info" onclick="viewGoalDetails(${goal.id})">
+                                    <i class="fa fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary" onclick="editGoal(${goal.id})">
+                                    <i class="fa fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteGoal(${goal.id})">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        ${goal.description ? `
+                            <div class="goal-description">
+                                ${goal.description}
+                            </div>
+                        ` : ''}
+                        
+                        <div class="goal-meta">
+                            <div>
+                                ${statusBadge}
+                                ${deadlineHtml}
+                            </div>
+                            <div>
+                                <button class="btn btn-sm ${isCompleted ? 'btn-outline-warning' : 'btn-outline-success'}" 
+                                        onclick="toggleGoalComplete(${goal.id})">
+                                    <i class="fa fa-${isCompleted ? 'undo' : 'check'}"></i>
+                                    ${isCompleted ? 'Undo' : 'Complete'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function loadStats() {
+            fetch('/roadmap/stats')
+                .then(response => response.json())
+                .then(stats => {
+                    document.getElementById('totalGoals').textContent = stats.total;
+                    document.getElementById('completedGoals').textContent = stats.completed;
+                    document.getElementById('pendingGoals').textContent = stats.pending;
+                    document.getElementById('overdueGoals').textContent = stats.overdue;
+                    
+                    // Update progress bar
+                    const progressBar = document.getElementById('progressBar');
+                    const progressText = document.getElementById('progressText');
+                    
+                    if (stats.total > 0) {
+                        const percentage = stats.completion_rate;
+                        progressBar.style.width = `${percentage}%`;
+                        progressBar.textContent = `${percentage}%`;
+                        progressText.textContent = `${stats.completed}/${stats.total} goals completed`;
+                    } else {
+                        progressBar.style.width = '0%';
+                        progressBar.textContent = '0%';
+                        progressText.textContent = 'No goals yet';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading stats:', error);
+                });
+        }
+        
+        function saveGoal() {
+            const goalId = document.getElementById('goalId').value;
+            const url = goalId ? `/roadmap/goals/${goalId}` : '/roadmap/goals';
+            const method = goalId ? 'PUT' : 'POST';
+            
+            const goalData = {
+                title: document.getElementById('goalTitle').value,
+                description: document.getElementById('goalDescription').value,
+                deadline: document.getElementById('goalDeadline').value || null
+            };
+            
+            if (!goalData.title.trim()) {
+                alert('Please enter a title for the goal');
+                return;
+            }
+            
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(goalData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadGoals();
+                    loadStats();
+                    resetForm();
+                    showNotification(goalId ? 'Goal updated!' : 'Goal added!', 'success');
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error saving goal. Please try again.');
+            });
+        }
+        
+        // Make functions available globally for onclick handlers
+        window.viewGoalDetails = function(goalId) {
+            currentGoalId = goalId;
+            const goal = goals.find(g => g.id === goalId);
+            
+            if (!goal) return;
+            
+            document.getElementById('modalGoalTitle').textContent = goal.title;
+            document.getElementById('modalGoalDescription').textContent = goal.description || 'No description provided';
+            
+            if (goal.deadline) {
+                document.getElementById('modalGoalDeadline').textContent = goal.deadline;
+                document.getElementById('modalGoalDeadline').className = goal.is_overdue ? 'badge badge-danger' : 'badge badge-info';
+            } else {
+                document.getElementById('modalGoalDeadline').textContent = 'Not set';
+                document.getElementById('modalGoalDeadline').className = 'badge badge-secondary';
+            }
+            
+            document.getElementById('modalGoalStatus').textContent = goal.is_completed ? 'Completed' : 'Active';
+            document.getElementById('modalGoalStatus').className = goal.is_completed ? 'badge badge-success' : 'badge badge-warning';
+            
+            document.getElementById('modalGoalCreated').textContent = goal.created_at;
+            document.getElementById('modalGoalCompleted').textContent = goal.completed_at || 'Not completed yet';
+            
+            $('#goalModal').modal('show');
+        };
+        
+        window.editGoal = function(goalId) {
+            const goal = goals.find(g => g.id === goalId);
+            
+            if (!goal) return;
+            
+            document.getElementById('goalId').value = goalId;
+            document.getElementById('goalTitle').value = goal.title;
+            document.getElementById('goalDescription').value = goal.description || '';
+            document.getElementById('goalDeadline').value = goal.deadline || '';
+            
+            document.getElementById('saveGoalBtn').innerHTML = '<i class="fa fa-save"></i> Update Goal';
+            document.getElementById('cancelEditBtn').style.display = 'block';
+            
+            document.getElementById('goalTitle').focus();
+            
+            showNotification(`Editing: ${goal.title}`, 'info');
+        };
+        
+        window.deleteGoal = function(goalId) {
+            if (!confirm('Are you sure you want to delete this goal?')) return;
+            
+            fetch(`/roadmap/goals/${goalId}`, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadGoals();
+                        loadStats();
+                        showNotification('Goal deleted', 'info');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error deleting goal');
+                });
+        };
+        
+        window.toggleGoalComplete = function(goalId) {
+            const goal = goals.find(g => g.id === goalId);
+            if (!goal) return;
+            
+            const newStatus = !goal.is_completed;
+            
+            fetch(`/roadmap/goals/${goalId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_completed: newStatus })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadGoals();
+                    loadStats();
+                    showNotification(`Goal marked as ${newStatus ? 'complete' : 'incomplete'}`, 'success');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error updating goal');
+            });
+        };
+        
+        function reorderGoals() {
+            const goalCards = document.querySelectorAll('.goal-card');
+            const order = Array.from(goalCards).map(card => parseInt(card.dataset.goalId));
+            
+            fetch('/roadmap/goals/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order: order })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadGoals(); // Reload to get updated positions
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Error reordering goals', 'error');
+            });
+        }
+        
+        function markAllComplete() {
+            if (!confirm('Mark all goals as complete?')) return;
+            
+            const promises = goals.map(goal => {
+                if (!goal.is_completed) {
+                    return fetch(`/roadmap/goals/${goal.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ is_completed: true })
+                    });
+                }
+                return Promise.resolve();
+            });
+            
+            Promise.all(promises)
+                .then(() => {
+                    loadGoals();
+                    loadStats();
+                    showNotification('All goals marked as complete!', 'success');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error updating goals');
+                });
+        }
+        
+        function clearCompleted() {
+            if (!confirm('Delete all completed goals?')) return;
+            
+            const completedGoals = goals.filter(goal => goal.is_completed);
+            const promises = completedGoals.map(goal => 
+                fetch(`/roadmap/goals/${goal.id}`, { method: 'DELETE' })
+            );
+            
+            Promise.all(promises)
+                .then(() => {
+                    loadGoals();
+                    loadStats();
+                    showNotification('Completed goals cleared', 'info');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error deleting goals');
+                });
+        }
+        
+        function sortByDeadline() {
+            goals.sort((a, b) => {
+                if (!a.deadline && !b.deadline) return 0;
+                if (!a.deadline) return 1;
+                if (!b.deadline) return -1;
+                return new Date(a.deadline) - new Date(b.deadline);
+            });
+            renderGoals();
+            showNotification('Sorted by deadline', 'info');
+        }
+        
+        function sortByCompletion() {
+            goals.sort((a, b) => {
+                if (a.is_completed === b.is_completed) return 0;
+                return a.is_completed ? 1 : -1;
+            });
+            renderGoals();
+            showNotification('Sorted by completion status', 'info');
+        }
+        
+        function resetForm() {
+            document.getElementById('goalForm').reset();
+            document.getElementById('goalId').value = '';
+            
+            // Reset deadline to default
+            const defaultDeadline = new Date();
+            defaultDeadline.setDate(defaultDeadline.getDate() + 7);
+            document.getElementById('goalDeadline').value = defaultDeadline.toISOString().split('T')[0];
+            
+            document.getElementById('saveGoalBtn').innerHTML = '<i class="fa fa-plus"></i> Add Goal';
+            document.getElementById('cancelEditBtn').style.display = 'none';
+        }
+        
+        function showNotification(message, type = 'info') {
+            // You can use the showNotification function from your existing code
+            if (typeof window.showNotification === 'function') {
+                window.showNotification(message, type);
+            } else {
+                // Fallback simple notification
+                alert(message);
+            }
+        }
+    });
+</script>
+{% endblock %}
